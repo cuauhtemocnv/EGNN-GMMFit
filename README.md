@@ -124,7 +124,7 @@ The project requires the following libraries:
 
 Install dependencies using:
 ```bash
-pip install -r requirements.txt
+pip install torch numpy matplotlib scikit-learn
 ```
 
 ---
