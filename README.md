@@ -1,185 +1,61 @@
-# EGNN-GMMFit
-model that extracts hidden features, train a Gaussian Mixture Model (GMM), to give a graph similarity evaluation
-# **EGNN-GMM: Graph Similarity Feasibility Checker**
+# EGNN-GMM: Reliability of Molecular Property Predictions
 
-This project combines an **E(n)-Equivariant Graph Neural Network (EGNN)** with a **Gaussian Mixture Model (GMM)** to evaluate graph input feasibility. The hidden node features extracted from the EGNN model are used to train the GMM, which predicts the negative log-likelihood (NLL) of input graphs. This helps assess if input graphs are similar to the training set and ensures reliable predictions.
+## Overview
 
----
+Imagine you are training an **Equivariant Graph Neural Network (EGNN)** to predict a molecular property \( X \). Once trained, you want to use this model to predict the same property \( X \) for a new set of molecules. 
 
-## **Overview**
-The pipeline consists of two main components:
-1. **EGNN (E(n)-Equivariant Graph Neural Network):**
-   - Extracts hidden node-level features from graphs.
-   - Processes node features, edge features, and coordinates in an equivariant manner.
-the Equivariant Graph Convolutional Layer inspired by https://github.com/vgsatorras/egnn
-2. **Gaussian Mixture Model (GMM):**
-   - Trains on extracted hidden features to compute NLL for graph inputs.
-   - Provides a measure to assess input graph similarity to the training distribution.
+But how confident are you that the predictions for these new molecules are reliable?
+
+This is where **EGNN-GMM Fit** comes in. By combining the EGNN with a **Gaussian Mixture Model (GMM)** trained on the hidden (latent) layer of the EGNN, you can evaluate the **reliability** of your model's predictions for unseen data.
 
 ---
 
-## **Features**
-- **E(n)-Equivariant Neural Network:** Handles graph data with node features, edge features, and spatial coordinates.
-- **Hidden Feature Extraction:** Extracts node-level embeddings from a specified hidden layer.
-- **Graph Feasibility Evaluation:** Uses GMM to predict NLL, indicating graph similarity to training data.
-- **Modular Implementation:** Easily customizable EGNN and GMM components.
+## Purpose
+
+- **EGNN**: A model that predicts properties of molecules from graph-based representations.  
+- **GMM in Latent Space**: The GMM is trained on the hidden representation (latent space, often dimmensional space higher than the node features) of the EGNN to model the distribution of the training data.  
+- **Reliability Assessment**: By evaluating the Negative Log-Likelihood (NLL) of new data under the GMM, you can quantify how "in-distribution" or "out-of-distribution" the new molecules are.
 
 ---
 
-## **Project Structure**
+## Why GMM in Latent Space?
 
-```
-EGNN-GMM/
-│
-├── egnn_gmm.py        # EGNN implementation and utility functions
-├── train_gmm.py       # Script to train EGNN and GMM
-├── utils.py           # Helper functions (e.g., edge computation)
-├── requirements.txt   # Required Python libraries
-└── README.md          # Project documentation
-```
+The hidden (latent) layer of the EGNN contains learned, lower-dimensional embeddings of the input molecular graphs. By fitting a **Gaussian Mixture Model (GMM)** in this space, we capture the underlying distribution of the training data's latent representations. 
+
+For **new data**, the GMM calculates the Negative Log-Likelihood (NLL):
+- **Low NLL** → High reliability (similar to training data).
+- **High NLL** → Low reliability (out-of-distribution).
+
+This allows you to assess the confidence of predictions for new molecules.
 
 ---
 
-## **Installation**
+## Features
 
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/EGNN-GMM.git
-cd EGNN-GMM
-```
-2. Install the required dependencies:
-```bash
-pip install -r requirements.txt
-```
+1. **Train an EGNN**: Predict molecular properties using graph-based data.  
+2. **Fit a GMM in Latent Space**: Train the GMM every 20 epochs on the hidden representations.  
+3. **Reliability Quantification**: Compute the NLL of new molecular data to assess prediction reliability.  
 
 ---
 
-## **Usage**
+## Usage
 
-### **1. Training the EGNN Model**
+### 1. Training the Model
 
-The EGNN model processes graphs to extract node embeddings.
-
-**Example Usage:**
-```python
-from egnn_gmm import EGNN, initialize_weights_egnn, get_edges
-import torch
-
-# Generate Random Graph Data
-num_nodes = 50
-node_features = torch.randn(num_nodes, 5)
-node_coords = torch.randn(num_nodes, 3)
-edge_indices, edge_attr = get_edges(node_coords, cutoff=1.5)
-
-# Initialize EGNN
-egnn = EGNN(in_node_nf=5, hidden_nf=10, out_node_nf=2, n_layers=3)
-initialize_weights_egnn(egnn)
-
-# Forward Pass
-hidden_features, updated_coords = egnn(node_features, node_coords, edge_indices)
-print("Hidden Features Shape:", hidden_features.shape)
-```
-
----
-
-### **2. Extracting Hidden Features**
-
-You can extract features from a specific layer using the `get_hidden_representation` method:
+Train the EGNN for 100 epochs while fitting the GMM every 20 epochs:
 
 ```python
-# Extract Hidden Features from Layer 2
-hidden_features = egnn.get_hidden_representation(node_features, node_coords, edge_indices, layer_index=2)
-print("Extracted Hidden Features:", hidden_features.shape)
-```
+from egnn_gmm import train_egnn_gmm
 
----
+# Initialize and train EGNN
+trained_egnn, gmm = train_egnn_gmm(
+    egnn=model, 
+    data_loader=train_loader, 
+    n_epochs=100, 
+    gmm_epochs=20, 
+    n_components=3
+)
 
-### **3. Training the GMM**
-
-The extracted node features are used to train a Gaussian Mixture Model:
-
-```python
-from sklearn.mixture import GaussianMixture
-
-# Train GMM on Hidden Features
-gmm = GaussianMixture(n_components=4, random_state=42)
-gmm.fit(hidden_features.detach().numpy())
-
-# Evaluate NLL
-nll = -gmm.score_samples(hidden_features.detach().numpy())
-print("Mean NLL:", nll.mean())
-```
-
----
-
-### **4. Feasibility Check for Input Graphs**
-
-To assess the feasibility of a new input graph:
-
-```python
-# New Graph Input
-new_node_features = torch.randn(num_nodes, 5)
-new_node_coords = torch.randn(num_nodes, 3)
-new_edges, _ = get_edges(new_node_coords, cutoff=1.5)
-
-# Pass Graph Through EGNN
-input_hidden_features = egnn.get_hidden_representation(new_node_features, new_node_coords, new_edges)
-
-# Compute NLL
-input_nll = -gmm.score_samples(input_hidden_features.detach().numpy())
-print("Graph NLL:", input_nll.mean())
-
-# Feasibility Check
-threshold = 5.0  # Example threshold
-if input_nll.mean() < threshold:
-    print("Graph is similar to the training set. Prediction is feasible.")
-else:
-    print("Graph is out-of-distribution. Prediction may be unreliable.")
-```
-
----
-
-## **Code Structure**
-
-### **EGNN Class**
-- **Input:** Node features, coordinates, and edge indices.
-- **Layers:** Custom `E_GCL` layers for equivariant graph processing.
-- **Output:** Updated node embeddings and coordinates.
-
-### **`E_GCL` Layer**
-- Implements an E(n)-Equivariant Graph Convolutional Layer.
-- Processes edge and node features while respecting equivariance.
-
-### **Hidden Feature Extraction**
-- Allows access to intermediate node embeddings at any layer using `get_hidden_representation()`.
-
-### **GMM Feasibility Check**
-- Trains a Gaussian Mixture Model on node embeddings.
-- Computes NLL for input graphs to determine their similarity to the training data.
-
----
-
-## **Dependencies**
-The project requires the following libraries:
-
-- `torch` (>= 1.10)
-- `numpy`
-- `matplotlib`
-- `scikit-learn`
-
-Install dependencies using:
-```bash
-pip install -r requirements.txt
-```
-
----
-
-## **Results**
-- **Hidden Feature Visualization:** Plot embeddings of training graphs to assess clustering.
-- **NLL Thresholding:** Identify graphs that lie outside the training distribution.
-- **Prediction Reliability:** Flag unreliable predictions for out-of-distribution graphs.
-
----
 
 ## **Contributions**
 Contributions are welcome! Feel free to open issues or submit pull requests to enhance this project.
