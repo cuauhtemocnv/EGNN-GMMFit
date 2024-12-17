@@ -18,17 +18,22 @@ This is where **EGNN-GMM Fit** comes in. By combining the EGNN with a **Gaussian
 
 ---
 
-## Why GMM in Latent Space?
+## Why Train the GMM in Latent Space?
+The latent space of the EGNN is the internal representation (hidden layer) learned by the network during training. Fitting a GMM in this space achieves two goals:
 
-The hidden (latent) layer of the EGNN contains learned, lower-dimensional embeddings of the input molecular graphs. By fitting a **Gaussian Mixture Model (GMM)** in this space, we capture the underlying distribution of the training data's latent representations. 
+- **Model Training Data Distribution**:
+ The GMM identifies the regions of the latent space where the training data is concentrated.
 
-For **new data**, the GMM calculates the Negative Log-Likelihood (NLL):
-- **Low NLL** → High reliability (similar to training data).
-- **High NLL** → Low reliability (out-of-distribution).
+- **Evaluate New Data Reliability**:
+New molecular graphs can be passed through the EGNN, and their hidden representations compared against the GMM. If these representations fall outside the GMM's learned density, it indicates the new data is dissimilar to the training set, making predictions less reliable.
+
+- **Measure Confidence with Negative Log-Likelihood (NLL)**:
+The GMM computes the likelihood of new data under its learned distribution. High Negative Log-Likelihood (NLL) values indicate high uncertainty.
+
 
 This allows you to assess the confidence of predictions for new molecules.
 
----
+
 
 ## Features
 
@@ -55,7 +60,7 @@ trained_egnn, gmm = train_egnn_gmm(
     gmm_epochs=20, 
     n_components=3
 )
-
+```
 
 ## **Contributions**
 Contributions are welcome! Feel free to open issues or submit pull requests to enhance this project.
