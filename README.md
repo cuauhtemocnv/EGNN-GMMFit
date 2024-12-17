@@ -106,30 +106,12 @@ def generate_dummy_data(num_molecules=100, num_atoms=20, cutoff_radius=5.0):
 train_data = generate_dummy_data(num_molecules=100, num_atoms=20)
 train_loader = DataLoader(train_data, batch_size=10, shuffle=True)
 
-# ----- Model Training and GMM Fitting -----
-# Define a dummy EGNN model (replace with your own EGNN implementation)
-class DummyEGNN(torch.nn.Module):
-    def __init__(self, input_dim, hidden_dim, output_dim):
-        super(DummyEGNN, self).__init__()
-        self.hidden_layer = torch.nn.Linear(input_dim, hidden_dim)
-        self.output_layer = torch.nn.Linear(hidden_dim, output_dim)
-
-    def forward(self, data):
-        """
-        Forward pass:
-        - Node features `x` and edge features `edge_attr` are processed.
-        """
-        x, edge_attr = data.x, data.edge_attr
-        # Combine node and edge features (e.g., summing or concatenating)
-        node_input = torch.cat([x.float(), edge_attr.mean().unsqueeze(0).expand_as(x)], dim=1)
-        hidden = torch.relu(self.hidden_layer(node_input))
-        return hidden, self.output_layer(hidden)
 
 # Initialize the EGNN
-input_dim = 2  # Node features + bond influence
+input_dim = 1  # Node features 
 hidden_dim = 16
 output_dim = 1  # Property prediction
-model = DummyEGNN(input_dim, hidden_dim, output_dim)
+model = EGNN(in_node_nf=input_dim, hidden_nf=hidden_dim, out_node_nf=output_dim, in_edge_nf=1,edge_attr=edge_attr)
 
 # Train the EGNN and Fit GMM every 20 epochs
 n_epochs = 100
