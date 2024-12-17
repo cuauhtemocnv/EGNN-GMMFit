@@ -60,7 +60,80 @@ trained_egnn, gmm = train_egnn_gmm(
     gmm_epochs=20, 
     n_components=3
 )
+# Evaluate NLL
+nll = -gmm.score_samples(hidden_features.detach().numpy())
+print("Mean NLL:", nll.mean())
 ```
+
+---
+
+### **4. Feasibility Check for Input Graphs**
+
+To assess the feasibility of a new input graph:
+
+```python
+# New Graph Input
+new_node_features = torch.randn(num_nodes, 5)
+new_node_coords = torch.randn(num_nodes, 3)
+new_edges, _ = get_edges(new_node_coords, cutoff=1.5)
+
+# Pass Graph Through EGNN
+input_hidden_features = egnn.get_hidden_representation(new_node_features, new_node_coords, new_edges)
+
+# Compute NLL
+input_nll = -gmm.score_samples(input_hidden_features.detach().numpy())
+print("Graph NLL:", input_nll.mean())
+
+# Feasibility Check
+threshold = 5.0  # Example threshold
+if input_nll.mean() < threshold:
+    print("Graph is similar to the training set. Prediction is feasible.")
+else:
+    print("Graph is out-of-distribution. Prediction may be unreliable.")
+```
+
+---
+
+## **Code Structure**
+
+### **EGNN Class**
+- **Input:** Node features, coordinates, and edge indices.
+- **Layers:** Custom `E_GCL` layers for equivariant graph processing.
+- **Output:** Updated node embeddings and coordinates.
+
+### **`E_GCL` Layer**
+- Implements an E(n)-Equivariant Graph Convolutional Layer.
+- Processes edge and node features while respecting equivariance.
+
+### **Hidden Feature Extraction**
+- Allows access to intermediate node embeddings at any layer using `get_hidden_representation()`.
+
+### **GMM Feasibility Check**
+- Trains a Gaussian Mixture Model on node embeddings.
+- Computes NLL for input graphs to determine their similarity to the training data.
+
+---
+
+## **Dependencies**
+The project requires the following libraries:
+
+- `torch` (>= 1.10)
+- `numpy`
+- `matplotlib`
+- `scikit-learn`
+
+Install dependencies using:
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+## **Results**
+- **Hidden Feature Visualization:** Plot embeddings of training graphs to assess clustering.
+- **NLL Thresholding:** Identify graphs that lie outside the training distribution.
+- **Prediction Reliability:** Flag unreliable predictions for out-of-distribution graphs.
+
 
 ## **Contributions**
 Contributions are welcome! Feel free to open issues or submit pull requests to enhance this project.
