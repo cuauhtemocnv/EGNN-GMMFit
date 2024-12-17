@@ -230,3 +230,40 @@ def get_edges(points, cutoff):
     edge_attr = dist_mat[edge_index[0], edge_index[1]].unsqueeze(1)
 
     return edge_index, edge_attr    
+# GMM Training and Reliability Check
+def train_egnn_gmm(egnn, data_loader, n_epochs=100, gmm_epochs=20, n_components=3):
+    optimizer = Adam(egnn.parameters(), lr=0.001)
+    gmm = GaussianMixture(n_components=n_components)
+
+    for epoch in range(1, n_epochs + 1):
+        for data in data_loader:  # Assume data_loader provides graph data
+            node_features, edge_index, targets = data
+            optimizer.zero_grad()
+            predictions = egnn(node_features, edge_index)
+            loss = nn.MSELoss()(predictions, targets)
+            loss.backward()
+            optimizer.step()
+        
+        # Train GMM every `gmm_epochs`
+        if epoch % gmm_epochs == 0:
+            hidden_representations = []
+            with torch.no_grad():
+                for data in data_loader:
+                    node_features, edge_index, _ = data
+                    hidden = egnn.get_hidden_representation(node_features, edge_index)
+                    hidden_representations.append(hidden.cpu().numpy())
+            hidden_representations = np.vstack(hidden_representations)
+            gmm.fit(hidden_representations)
+            print(f"Epoch {epoch}: GMM trained on latent space.")
+
+    return egnn, gmm
+
+# Reliability Check
+def compute_reliability(egnn, gmm, new_data):
+    node_features, edge_index = new_data
+    with torch.no_grad():
+        hidden = egnn.get_hidden_representation(node_features, edge_index)
+    nll = -gmm.score_samples(hidden.cpu().numpy())  # Negative log-likelihood
+    reliability = np.mean(nll)
+    print(f"Negative Log-Likelihood (NLL): {reliability:.4f}")
+    return reliability
