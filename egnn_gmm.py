@@ -5,6 +5,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.init as init
+from sklearn.mixture import GaussianMixture
 
 def initialize_weights_egnn(model):
     """
