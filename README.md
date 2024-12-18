@@ -7,6 +7,7 @@ Imagine you are training an **Equivariant Graph Neural Network (EGNN)** to predi
 But how confident are you that the predictions for these new molecules are reliable?
 
 This is where **EGNN-GMM Fit** comes in. By combining the EGNN with a **Gaussian Mixture Model (GMM)** trained on the hidden (latent) layer of the EGNN, you can evaluate the **reliability** of your model's predictions for unseen data.
+The Graph Convolutional Layer (GLC) deeply inspired by vgsatorras https://github.com/vgsatorras/egnn
 
 ---
 
@@ -33,7 +34,8 @@ The GMM computes the likelihood of new data under its learned distribution. High
 
 This allows you to assess the confidence of predictions for new molecules.
 
-
+## Notebook example:
+A 2d cloud of points mapped oout to a centroid (see https://github.com/cuauhtemocnv/EGNN-GMMFit/blob/main/Centroid_example.ipynb). Here you can see where your GNN does a really good generalization despite inputs out of the training set.
 
 ## Features
 
