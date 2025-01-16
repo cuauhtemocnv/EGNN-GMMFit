@@ -1,6 +1,7 @@
 # EGNN-GMM: Reliability of Molecular Property Predictions
 
 ## Overview
+[View the PDF](EGNN-GMM_theory.pdf)
 
 Imagine you are training an **Equivariant Graph Neural Network (EGNN)** to predict a molecular property \( X \). Once trained, you want to use this model to predict the same property \( X \) for a new set of molecules. 
 
